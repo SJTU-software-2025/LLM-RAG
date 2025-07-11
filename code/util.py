@@ -3,16 +3,18 @@ from contextlib import contextmanager
 import os
 
 from openai import OpenAI
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_community import GoogleSearchAPIWrapper
 
 load_dotenv()
 
 def get_chat_model():
-    return ChatOpenAI(model_name=os.getenv('LLM_MODEL'),
-                    temperature=float(os.getenv('TEMPERATURE')),
-                    max_tokens = int(os.getenv('MAX_TOKENS')))
+    return ChatOpenAI(
+            model_name=os.getenv('LLM_MODEL'),
+            temperature=float(os.getenv('TEMPERATURE')),
+            max_tokens = int(os.getenv('MAX_TOKENS'))
+        )
 
 # from sentence_transformers import SentenceTransformer
 # def get_embedding_model():
@@ -20,30 +22,36 @@ def get_chat_model():
 # --- 导入正确的 LangChain 包装器 ---
 # from sentence_transformers import SentenceTransformer # 不再需要直接导入这个
 
+# def get_embedding_model():
+#     """
+#     获取一个符合 LangChain 接口标准的 Embedding 模型实例。
+#     """
+#     # 指定模型的名称，这个名称来自于 Hugging Face Hub
+#     model_name = 'sentence-transformers/all-MiniLM-L6-v2'
+    
+#     # 定义模型加载时的一些参数，比如指定在 CPU 上运行
+#     model_kwargs = {'device': 'cpu'}
+    
+#     # 定义编码时的一些参数，比如是否要归一化向量
+#     # 对于 all-MiniLM-L6-v2，归一化是推荐的
+#     encode_kwargs = {'normalize_embeddings': True}
+    
+#     # 实例化 LangChain 的包装器类
+#     embedding_model = HuggingFaceEmbeddings(
+#         model_name=model_name,
+#         model_kwargs=model_kwargs,
+#         encode_kwargs=encode_kwargs
+#     )
+#     return embedding_model
+
 def get_embedding_model():
-    """
-    获取一个符合 LangChain 接口标准的 Embedding 模型实例。
-    """
-    # 指定模型的名称，这个名称来自于 Hugging Face Hub
-    model_name = 'sentence-transformers/all-MiniLM-L6-v2'
-    
-    # 定义模型加载时的一些参数，比如指定在 CPU 上运行
-    model_kwargs = {'device': 'cpu'}
-    
-    # 定义编码时的一些参数，比如是否要归一化向量
-    # 对于 all-MiniLM-L6-v2，归一化是推荐的
-    encode_kwargs = {'normalize_embeddings': True}
-    
-    # 实例化 LangChain 的包装器类
-    embedding_model = HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs=model_kwargs,
-        encode_kwargs=encode_kwargs
-    )
-    return embedding_model
+    return OpenAIEmbeddings(model=os.getenv("EMBEDDING_MODEL"))
 
 def get_vision_model():
-    return OpenAI()
+    return OpenAI(
+        api_key=os.environ.get("MOONSHOT_API_KEY"),
+        base_url="https://api-sg.moonshot.ai/v1",
+    )
 
 @contextmanager
 def temporary_proxy(proxy_url: str):

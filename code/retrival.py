@@ -7,34 +7,36 @@ from langchain.prompts import PromptTemplate
 from langchain_chroma import Chroma
 
 from util import get_embedding_model, get_chat_model
-from prompt import RETRIVAL_PROMPT_TPL
+from prompt import RETRIEVAL_PROMPT_TPL
 
 project_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(project_root))
 input_dir = project_root / 'db' 
 
 vdb = Chroma(persist_directory=str(input_dir), embedding_function=get_embedding_model())
-prompt = PromptTemplate.from_template(RETRIVAL_PROMPT_TPL)
-retrival_chain = LLMChain(
+prompt = PromptTemplate.from_template(RETRIEVAL_PROMPT_TPL)
+retrieval_chain = LLMChain(
     llm = get_chat_model(),
     prompt = prompt,
     verbose = bool(os.getenv('VERBOSE'))
 )
 
-def retrival(query):
+def retrieval(query):
     documents = vdb.similarity_search_with_score(query, k=3)
     query_result = [doc[0].page_content for doc in documents]
     inputs = {
         'query': query,
         'query_result': '\n\n'.join(query_result) if len(query_result) else '没有查到'
     }
-    return retrival_chain.invoke(inputs)['text']
+    return retrieval_chain.invoke(inputs)['text']
 
 if __name__ == "__main__":
     # query = 'What is the first step in FBA?'
-    # query = 'How are metabolic reactions represented in FBA?'
-    query = "In FSEOF, the targets were selected by identifying fluxes that increased upon the application of the enforced objective flux without changing the reaction's direction. How is this mathematically formulated?"
-    print(retrival(query))
+    # query = 'What is GEM?'
+    # query = "In FSEOF, the targets were selected by identifying fluxes that increased upon the application of the enforced objective flux without changing the reaction's direction. How is this mathematically formulated?"
+    # query = "What is ecGEM?"
+    query = "What is etcGEM?" # 不知道
+    print(retrieval(query))
 
 
 # 检索结果：upon the application of the enforced objective flux without changing the reaction's direction. This is mathematically formulated as follows.

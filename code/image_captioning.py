@@ -1,18 +1,22 @@
 from dotenv import load_dotenv
-load_dotenv()
-
+import base64
+import os
 from pathlib import Path
 import sys
+import re
+
+from tqdm import tqdm
+
+from util import *
+from prompt import *
+
 # 为了能正确导入 'code' 目录下的其他文件，我们将项目根目录添加到 python 路径中
 # 项目根目录是 'LLM-RAG'
 project_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(project_root))
 
-from util import *
-from prompt import *
+load_dotenv()
 
-import base64
-import os
 def get_image_description(vision_model, image_path:Path):
     """
     使用 Moonshot Vision API 为单个图片生成详细的描述。
@@ -59,21 +63,33 @@ def get_image_description(vision_model, image_path:Path):
         print(f"处理图片 {image_path.name} 时发生错误: {e}")
         return "[生成描述时出错]"
 
-import re
-from tqdm import tqdm
 def process_markdown_file(vision_model, md_path: Path, revised_output_dir: Path):
     """
     读取一个 markdown 文件，查找所有图片，生成描述，并保存一个插入了描述的新版本。
+    如果修订版文件已存在，则直接跳过。
     """
+
+    # 1.首先确定目标文件的路径
+    revised_md_path = revised_output_dir / md_path.name
+
+    # 2.检查目标文件是否已存在，如果存在则直接返回，不再执行后续操作
+    if revised_md_path.exists():
+        print(f"文件已存在，跳过: {revised_md_path}")
+        return  # 提前退出函数
+
+    # --- 如果程序能运行到这里，说明目标文件不存在，可以继续处理 ---
+    print(f"正在处理新文件: {md_path.name}")
     content = md_path.read_text(encoding='utf-8')
     
     # 使用正则表达式查找所有 markdown 图片链接，例如 ![...](...)
     # 我们会先找出所有链接，然后再统一处理
     image_links = re.findall(r'(!\[.*?\]\((.*?)\))', content)
 
+    # 确保输出目录存在
+    revised_md_path.parent.mkdir(parents=True, exist_ok=True)
+
     if not image_links:
         # 如果没有图片，直接复制文件
-        revised_md_path = revised_output_dir / md_path.name
         revised_md_path.write_text(content, encoding='utf-8')
         return
 
@@ -96,8 +112,6 @@ def process_markdown_file(vision_model, md_path: Path, revised_output_dir: Path)
         content = content.replace(full_match, replacement_string, 1)
 
     # 将修改后的内容保存到修订版输出目录
-    revised_md_path = revised_output_dir / md_path.name
-    revised_md_path.parent.mkdir(parents=True, exist_ok=True)
     revised_md_path.write_text(content, encoding='utf-8')
     print(f"成功创建修订版文件: {revised_md_path}")
 
